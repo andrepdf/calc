@@ -9,7 +9,8 @@ where
 import Data.Word ( Word8 )
 import Data.Bits ( shiftR )
 import GHC.Float ( castDoubleToWord64 )
-import Syntax    ( Expr(..) )
+
+import Syntax ( Expr(..) )
 
 compile :: Expr -> [Word8]
 compile expr = comp expr ++ [EXIT]
