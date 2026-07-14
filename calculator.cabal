@@ -1,0 +1,17 @@
+cabal-version:   3.16
+name:            calculator
+version:         0.1.0.0
+license:         NONE
+author:          andrepdf
+maintainer:      pfandre27@gmail.com
+build-type:      Simple
+
+common warnings
+    ghc-options: -Wall
+
+library
+    import:           warnings
+    exposed-modules:  Syntax, Compiler
+    hs-source-dirs:   src
+    build-depends:    base
+    default-language: Haskell2010
