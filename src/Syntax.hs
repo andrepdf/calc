@@ -1,4 +1,6 @@
-module Syntax where
+module Syntax
+    ( Expr(..) )
+where
 
 data Expr
     = Val Double

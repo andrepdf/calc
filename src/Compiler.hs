@@ -12,14 +12,14 @@ import GHC.Float ( castDoubleToWord64 )
 import Syntax    ( Expr(..) )
 
 compile :: Expr -> [Word8]
-compile expr = compile' expr ++ [EXIT]
+compile expr = comp expr ++ [EXIT]
 
-compile' :: Expr -> [Word8]
-compile' (Val x)   = PUSH : doubleToBytes x
-compile' (Add x y) = compile' x ++ compile' y ++ [ADD]
-compile' (Sub x y) = compile' x ++ compile' y ++ [SUB]
-compile' (Mul x y) = compile' x ++ compile' y ++ [MUL]
-compile' (Div x y) = compile' x ++ compile' y ++ [DIV]
+comp :: Expr -> [Word8]
+comp (Val x)   = PUSH : doubleToBytes x
+comp (Add x y) = comp x ++ comp y ++ [ADD]
+comp (Sub x y) = comp x ++ comp y ++ [SUB]
+comp (Mul x y) = comp x ++ comp y ++ [MUL]
+comp (Div x y) = comp x ++ comp y ++ [DIV]
 
 doubleToBytes :: Double -> [Word8]
 doubleToBytes d =

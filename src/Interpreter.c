@@ -1,7 +1,7 @@
 #include "Interpreter.h"
 
 Stack* stack_create(size_t cap) {
-    Stack* st = (Stack*)malloc(sizeof(st));
+    Stack* st = (Stack*)malloc(sizeof(Stack));
     if (st == NULL) return NULL;
 
     double* arr = (double*)calloc(cap, sizeof(double));
@@ -19,11 +19,8 @@ void stack_destroy(Stack* st) {
 }
 
 int stack_resize(Stack* st, size_t cap) {
-    double* arr = (double*)calloc(cap, sizeof(double));
+    double* arr = (double*)realloc(st->arr, cap * sizeof(double));
     if (arr == NULL) return 1;
-
-    memcpy(arr, st->arr, cap);
-    free(st->arr);
 
     st->arr = arr;
     st->cap = cap;
@@ -79,37 +76,36 @@ int stack_div(Stack* st) {
 int interpret(double* res, uint8_t* bc) {
     Stack* st = stack_create(DEFAULT_STACK_CAP);
 
-    size_t i = 0;
     while (1) {
-        switch (bc[i]) {
+        switch (*bc) {
             case EXIT:
-                if (st.pop(st, res)) { stack_destroy(st); return 1; }
+                if (stack_pop(st, res)) { stack_destroy(st); return 1; }
                 break;
             case PUSH:
                 double n;
                 memcpy(&n, bc + 1, sizeof(double));
                 if (stack_push(st, n)) { stack_destroy(st); return 1; }
-                i += 1 + sizeof(double);
+                bc += 1 + sizeof(double);
                 continue;
             case POP:
                 if (stack_pop(st, NULL)) { stack_destroy(st); return 1; }
-                i += 1;
+                bc += 1;
                 continue;
             case ADD:
                 if (stack_add(st)) { stack_destroy(st); return 1; }
-                i += 1;
+                bc += 1;
                 continue;
             case SUB:
                 if (stack_sub(st)) { stack_destroy(st); return 1; }
-                i += 1;
+                bc += 1;
                 continue;
             case MUL:
                 if (stack_mul(st)) { stack_destroy(st); return 1; }
-                i += 1;
+                bc += 1;
                 continue;
             case DIV:
                 if (stack_div(st)) { stack_destroy(st); return 1; }
-                i += 1;
+                bc += 1;
                 continue;
         }
         break;
