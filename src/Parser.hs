@@ -172,16 +172,19 @@ identifier = alpha <:> many alphanum
 keywords :: [String]
 keywords = [ "let", "in" ]
 
+identifier' :: Parser String
+identifier' = do
+    x <- identifier
+    if x `elem` keywords
+       then empty <?> "unexpected keyword '" ++ x ++ "' as identifier"
+       else pure x
+
 value :: Parser Expr
 value = Val . read <$> decimal
     <?> "expecting expression"
 
 variable :: Parser Expr
-variable = do
-    x <- identifier
-    if x `elem` keywords
-       then empty
-       else pure $ Var x
+variable = Var <$> identifier'
 
 parentheses :: Parser Expr -> Parser Expr
 parentheses px = char '(' *> spaces *> px <* spaces <* char ')'
@@ -202,7 +205,7 @@ term = chainl1 (atom <* spaces) ops
 letExpr :: Parser Expr
 letExpr = do
     _ <- string "let" <* spaces
-    x <- identifier <* spaces
+    x <- identifier' <* spaces
     _ <- char '=' <* spaces
     a <- expression <* spaces
     _ <- string "in" <* spaces
