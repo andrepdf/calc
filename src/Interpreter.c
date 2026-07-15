@@ -1,16 +1,17 @@
 #include "Interpreter.h"
 
-Stack* stack_create(size_t cap) {
+int stack_create(Stack** out, Size cap) {
     Stack* st = (Stack*)malloc(sizeof(Stack));
-    if (st == NULL) return NULL;
+    if (st == NULL) return ERR;
 
-    double* arr = (double*)calloc(cap, sizeof(double));
-    if (arr == NULL) { free(st); return NULL; }
+    Value* arr = (Value*)calloc(cap, sizeof(Value));
+    if (arr == NULL) { free(st); return ERR; }
 
     st->arr = arr;
     st->cap = cap;
     st->idx = 0;
-    return st;
+    *out = st;
+    return OK;
 }
 
 void stack_destroy(Stack* st) {
@@ -18,99 +19,109 @@ void stack_destroy(Stack* st) {
     free(st);
 }
 
-int stack_resize(Stack* st, size_t cap) {
-    double* arr = (double*)realloc(st->arr, cap * sizeof(double));
-    if (arr == NULL) return 1;
+int stack_resize(Stack* st, Size cap) {
+    Value* arr = (Value*)realloc(st->arr, cap * sizeof(Value));
+    if (arr == NULL) return ERR;
 
     st->arr = arr;
     st->cap = cap;
-    return 0;
+    return OK;
 }
 
-int stack_push(Stack* st, double n) {
-    if (st->idx == st->cap && stack_resize(st, st->cap * 2)) return 1;
-    st->arr[st->idx] = n;
+int stack_push(Stack* st, Value val) {
+    if (st->idx == st->cap && !stack_resize(st, st->cap * 2)) return ERR;
+    st->arr[st->idx] = val;
     st->idx += 1;
-    return 0;
+    return OK;
 }
 
-int stack_pop(Stack* st, double* n) {
-    if (st->idx == 0) return 1;
+int stack_pop(Stack* st, Value* val) {
+    if (st->idx == 0) return ERR;
     st->idx -= 1;
-    if (n != NULL) *n = st->arr[st->idx];
-    return 0;
+    if (val != NULL) *val = st->arr[st->idx];
+    return OK;
+}
+
+int stack_get(Stack* st, Size off) {
+    if (off > st->idx) return ERR;
+    Value val = st->arr[st->idx - off];
+    if (!stack_push(st, val)) return ERR;
+    return OK;
 }
 
 int stack_add(Stack* st) {
-    if (st->idx < 2) return 1;
+    if (st->idx < 2) return ERR;
     st->arr[st->idx - 2] += st->arr[st->idx - 1];
-    st->arr[st->idx - 1] = 0;
     st->idx -= 1;
-    return 0;
+    return OK;
 }
 
 int stack_sub(Stack* st) {
-    if (st->idx < 2) return 1;
+    if (st->idx < 2) return ERR;
     st->arr[st->idx - 2] -= st->arr[st->idx - 1];
-    st->arr[st->idx - 1] = 0;
     st->idx -= 1;
-    return 0;
+    return OK;
 }
 
 int stack_mul(Stack* st) {
-    if (st->idx < 2) return 1;
+    if (st->idx < 2) return ERR;
     st->arr[st->idx - 2] *= st->arr[st->idx - 1];
-    st->arr[st->idx - 1] = 0;
     st->idx -= 1;
-    return 0;
+    return OK;
 }
 
 int stack_div(Stack* st) {
-    if (st->idx < 2) return 1;
+    if (st->idx < 2) return ERR;
     st->arr[st->idx - 2] /= st->arr[st->idx - 1];
-    st->arr[st->idx - 1] = 0;
     st->idx -= 1;
-    return 0;
+    return OK;
 }
 
-int interpret(double* res, uint8_t* bc) {
-    Stack* st = stack_create(DEFAULT_STACK_CAP);
+int interpret(Value* out, Byte* bc) {
+    Stack* st;
+    if (!stack_create(&st, DEFAULT_STACK_CAP)) return ERR;
 
     while (1) {
-        switch (*bc) {
+        switch(*bc) {
             case EXIT:
-                if (stack_pop(st, res)) { stack_destroy(st); return 1; }
+                if (!stack_pop(st, out)) return ERR;
                 break;
             case PUSH:
-                double n;
-                memcpy(&n, bc + 1, sizeof(double));
-                if (stack_push(st, n)) { stack_destroy(st); return 1; }
-                bc += 1 + sizeof(double);
+                Value val;
+                memcpy(&val, bc + 1, sizeof(Value));
+                if (!stack_push(st, val)) return ERR;
+                bc += sizeof(Byte) + sizeof(Value);
                 continue;
             case POP:
-                if (stack_pop(st, NULL)) { stack_destroy(st); return 1; }
-                bc += 1;
+                if (!stack_pop(st, NULL)) return ERR;
+                bc += sizeof(Byte);
+                continue;
+            case GET:
+                Size off;
+                memcpy(&off, bc + 1, sizeof(Size));
+                if (!stack_get(st, off)) return ERR;
+                bc += sizeof(Byte) + sizeof(Size);
                 continue;
             case ADD:
-                if (stack_add(st)) { stack_destroy(st); return 1; }
-                bc += 1;
+                if (!stack_add(st)) return ERR;
+                bc += sizeof(Byte);
                 continue;
             case SUB:
-                if (stack_sub(st)) { stack_destroy(st); return 1; }
-                bc += 1;
+                if (!stack_sub(st)) return ERR;
+                bc += sizeof(Byte);
                 continue;
             case MUL:
-                if (stack_mul(st)) { stack_destroy(st); return 1; }
-                bc += 1;
+                if (!stack_mul(st)) return ERR;
+                bc += sizeof(Byte);
                 continue;
             case DIV:
-                if (stack_div(st)) { stack_destroy(st); return 1; }
-                bc += 1;
+                if (!stack_div(st)) return ERR;
+                bc += sizeof(Byte);
                 continue;
         }
         break;
     }
 
     stack_destroy(st);
-    return 0;
+    return OK;
 }

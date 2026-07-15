@@ -2,12 +2,12 @@ module Parser
     ( State(..), Error(..), Result(..), Parser(..)
     , diagnose, try, choice, chainl1
     , (<?>), (<:>), (<++>)
-    , void, satisfy, char, string, space, spaces, digit
-    , natural, integer, decimal
-    , value, atom, term, expression, parse )
+    , void, satisfy, char, string, space, spaces, digit, alpha, alphanum
+    , natural, integer, decimal, identifier
+    , value, atom, term, letExpr, expression, parse )
 where
 
-import Data.Char           ( isSpace, isDigit )
+import Data.Char           ( isSpace, isDigit, isAlpha, isAscii )
 import Control.Applicative ( Alternative(..) )
 
 import Syntax ( Expr(..) )
@@ -71,8 +71,8 @@ instance Monad Parser where
 
 diagnose :: State -> Error -> String
 diagnose (State str _) (Error msg idx) =
-    let ptr = replicate (idx - 1) ' ' ++ "^" in
-    "Syntax Error: " ++ msg ++ "\n  " ++ str ++ "\n  " ++ ptr
+    let ptr = replicate idx ' ' ++ "^" in
+    "| Syntax Error: " ++ msg ++ "\n|   " ++ str ++ "\n|   " ++ ptr
 
 try :: Parser a -> Parser a
 try px = Parser $ \s0 ->
@@ -140,6 +140,15 @@ digit :: Parser Char
 digit = satisfy isDigit
     <?> "expecting digit"
 
+alpha :: Parser Char
+alpha = satisfy (\c -> isAlpha c && isAscii c)
+    <?> "expecting letter"
+
+alphanum :: Parser Char
+alphanum = choice "expecting alphanumberic"
+    [ alpha
+    , digit ]
+
 natural :: Parser String
 natural = some digit
     <?> "expecting natural"
@@ -154,11 +163,19 @@ decimal = choice "expecting decimal"
     [ try $ integer <++> (char '.' <:> natural)
     , integer ]
 
+identifier :: Parser String
+identifier = alpha <:> many alphanum
+    <?> "expecting identifier"
+
 --- Expression Parsers ---
 
 value :: Parser Expr
 value = Val . read <$> decimal
     <?> "expecting expression"
+
+variable :: Parser Expr
+variable = Var <$> identifier
+    <?> "expecting variable"
 
 parentheses :: Parser Expr -> Parser Expr
 parentheses px = char '(' *> spaces *> px <* spaces <* char ')'
@@ -166,6 +183,7 @@ parentheses px = char '(' *> spaces *> px <* spaces <* char ')'
 atom :: Parser Expr
 atom = choice "expecting expression"
     [ value
+    , variable
     , parentheses expression ]
 
 term :: Parser Expr
@@ -175,8 +193,20 @@ term = chainl1 (atom <* spaces) ops
             [ Mul <$ (spaces *> char '*' <* spaces)
             , Div <$ (spaces *> char '/' <* spaces) ]
 
+letExpr :: Parser Expr
+letExpr = do
+    _ <- string "let" <* spaces
+    x <- identifier <* spaces
+    _ <- char '=' <* spaces
+    a <- expression <* spaces
+    _ <- string "in" <* spaces
+    b <- expression
+    pure $ Let x a b
+
 expression :: Parser Expr
-expression = chainl1 term ops
+expression = choice "expecting expression"
+    [ letExpr
+    , chainl1 term ops ]
     where
         ops = choice "expecting operator"
             [ Add <$ (spaces *> char '+' <* spaces)

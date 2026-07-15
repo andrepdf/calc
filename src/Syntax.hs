@@ -8,4 +8,6 @@ data Expr
     | Sub Expr Expr
     | Mul Expr Expr
     | Div Expr Expr
+    | Var String
+    | Let String Expr Expr
     deriving Show

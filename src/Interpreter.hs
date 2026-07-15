@@ -20,6 +20,6 @@ interpret xs =
         with 0 $ \rptr -> do
             err <- c_interpret rptr xptr
             (CDouble res) <- peek rptr
-            if toBool err
+            if not $ toBool err
                then pure $ Nothing
                else pure $ Just res
