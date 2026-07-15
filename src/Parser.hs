@@ -169,13 +169,19 @@ identifier = alpha <:> many alphanum
 
 --- Expression Parsers ---
 
+keywords :: [String]
+keywords = [ "let", "in" ]
+
 value :: Parser Expr
 value = Val . read <$> decimal
     <?> "expecting expression"
 
 variable :: Parser Expr
-variable = Var <$> identifier
-    <?> "expecting variable"
+variable = do
+    x <- identifier
+    if x `elem` keywords
+       then empty
+       else pure $ Var x
 
 parentheses :: Parser Expr -> Parser Expr
 parentheses px = char '(' *> spaces *> px <* spaces <* char ')'
@@ -205,8 +211,8 @@ letExpr = do
 
 expression :: Parser Expr
 expression = choice "expecting expression"
-    [ letExpr
-    , chainl1 term ops ]
+    [ try $ chainl1 term ops
+    , letExpr ]
     where
         ops = choice "expecting operator"
             [ Add <$ (spaces *> char '+' <* spaces)
