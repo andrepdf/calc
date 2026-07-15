@@ -12,8 +12,8 @@ common warnings
 executable calculator
     import:           warnings
     main-is:          Main.hs
-    other-modules:    Syntax, Parser, Compiler, Interpreter
+    other-modules:    Syntax, Parser, Compiler, Interpreter, Test
     hs-source-dirs:   src
     c-sources:        src/Interpreter.c
-    build-depends:    base, haskeline
+    build-depends:    base, haskeline, QuickCheck
     default-language: Haskell2010
