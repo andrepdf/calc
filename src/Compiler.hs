@@ -29,7 +29,7 @@ comp env (Var x)     =
     case lookup x env of
         Nothing -> error $ "undefined variable '" ++ x ++ "'" -- TODO: handle error
         Just o  -> GET : toBytes o
-comp env (Let x a b) = comp env a ++ comp ((x, 1) : inc env) b
+comp env (Let x a b) = comp env a ++ comp ((x, 1) : inc env) b ++ [POP2]
 
 inc :: Env -> Env
 inc = map (\(x, o) -> (x, o + 1))

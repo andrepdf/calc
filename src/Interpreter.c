@@ -81,13 +81,14 @@ int interpret(Value* out, Byte* bc) {
     Stack* st;
     if (!stack_create(&st, DEFAULT_STACK_CAP)) return ERR;
 
+    Value val;
+    Size off;
     while (1) {
         switch(*bc) {
             case EXIT:
                 if (!stack_pop(st, out)) return ERR;
                 break;
             case PUSH:
-                Value val;
                 memcpy(&val, bc + 1, sizeof(Value));
                 if (!stack_push(st, val)) return ERR;
                 bc += sizeof(Byte) + sizeof(Value);
@@ -96,8 +97,13 @@ int interpret(Value* out, Byte* bc) {
                 if (!stack_pop(st, NULL)) return ERR;
                 bc += sizeof(Byte);
                 continue;
+            case POP2:
+                if (!stack_pop(st, &val)) return ERR;
+                if (!stack_pop(st, NULL)) return ERR;
+                if (!stack_push(st, val)) return ERR;
+                bc += sizeof(Byte);
+                continue;
             case GET:
-                Size off;
                 memcpy(&off, bc + 1, sizeof(Size));
                 if (!stack_get(st, off)) return ERR;
                 bc += sizeof(Byte) + sizeof(Size);
